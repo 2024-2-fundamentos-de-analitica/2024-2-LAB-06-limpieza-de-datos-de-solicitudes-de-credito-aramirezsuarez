@@ -1,6 +1,45 @@
 import pandas as pd
 import os
 
+def clean_data(df):
+    """Limpieza completa de los datos"""
+    df = df.copy()
+
+    # Transformar columnas numéricas a entero
+    df["monto_del_credito"] = (df["monto_del_credito"].str.strip()
+                                                  .str.strip("$")
+                                                  .str.replace(".00", "")
+                                                  .str.replace(",", "")
+                                                  .astype(int))
+    df["comuna_ciudadano"] = df["comuna_ciudadano"].astype(int)
+
+    # Limpieza de columnas de texto
+    df["sexo"] = df["sexo"].str.strip().str.lower()
+    df["tipo_de_emprendimiento"] = df["tipo_de_emprendimiento"].str.strip().str.lower()
+    df["línea_credito"] = (df["línea_credito"].str.strip()
+                                            .str.lower()
+                                            .str.replace(" ", "")
+                                            .str.translate(str.maketrans("", "", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")))
+    df["idea_negocio"] = (df["idea_negocio"].str.strip()
+                                              .str.lower()
+                                              .str.replace("á", "a")
+                                              .str.replace("é", "e")
+                                              .str.replace("í", "i")
+                                              .str.replace("ó", "o")
+                                              .str.replace("ú", "u")
+                                              .str.replace(" ", "")
+                                              .str.translate(str.maketrans("", "", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")))
+    df["barrio"] = df["barrio"].str.lower().str.replace("_", " ").str.replace("-", " ")
+
+    # Convertir fechas
+    df["fecha_de_beneficio"] = pd.to_datetime(df["fecha_de_beneficio"], dayfirst=True, errors="coerce")
+
+    # Eliminar duplicados y filas con valores faltantes
+    df = df.dropna().drop_duplicates()
+
+    return df
+
+
 def pregunta_01():
     """
     Realiza la limpieza del archivo "files/input/solicitudes_de_credito.csv".
@@ -15,12 +54,7 @@ def pregunta_01():
         
         data = pd.read_csv(file_input_path, sep=None, engine='python')
 
-        data.columns = data.columns.str.strip()
-
-        data_cleaned = data.drop_duplicates()
-
-        data_cleaned = data_cleaned.dropna(how='any')
-
+        data_cleaned = clean_data(data)
        
         os.makedirs(os.path.dirname(file_output_path), exist_ok=True)
 
