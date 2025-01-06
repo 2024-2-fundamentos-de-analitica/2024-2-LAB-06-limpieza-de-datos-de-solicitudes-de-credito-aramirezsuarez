@@ -1,9 +1,28 @@
-import pandas as pd
 import os
+import pandas as pd
+
+def load_data(input_file):
+    """Cargar archivo CSV desde la ruta especificada"""
+    return pd.read_csv(input_file, sep=";", index_col=None)
+
+def _create_output_directory(output_directory):
+    """Crear o limpiar el directorio de salida"""
+    if os.path.exists(output_directory):
+        for file in os.listdir(output_directory):
+            os.remove(os.path.join(output_directory, file))
+        os.rmdir(output_directory)
+    os.makedirs(output_directory)
+
+def _save_output(output_directory, filename, df):
+    """Guardar el DataFrame en el directorio especificado"""
+    df.to_csv(f"{output_directory}/{filename}.csv", index=False, sep=";")
 
 def clean_data(df):
     """Limpieza completa de los datos"""
     df = df.copy()
+
+    # Eliminar columna Unnamed: 0 si existe
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
     # Transformar columnas numéricas a entero
     df["monto_del_credito"] = (df["monto_del_credito"].str.strip()
@@ -29,7 +48,9 @@ def clean_data(df):
                                               .str.replace("ú", "u")
                                               .str.replace(" ", "")
                                               .str.translate(str.maketrans("", "", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")))
-    df["barrio"] = df["barrio"].str.lower().str.replace("_", " ").str.replace("-", " ")
+    df["barrio"] = (df["barrio"].str.lower()
+                                    .str.replace("_", " ")
+                                    .str.replace("-", " "))
 
     # Convertir fechas
     df["fecha_de_beneficio"] = pd.to_datetime(df["fecha_de_beneficio"], dayfirst=True, errors="coerce")
@@ -39,37 +60,33 @@ def clean_data(df):
 
     return df
 
-
 def pregunta_01():
-    """
-    Realiza la limpieza del archivo "files/input/solicitudes_de_credito.csv".
-    Elimina duplicados y filas con datos faltantes. Guarda el resultado limpio 
-    en "files/output/solicitudes_de_credito_limpio.csv".
-    """
-
+    """Proceso principal para limpiar y guardar el archivo de solicitudes de crédito"""
     file_input_path = "files/input/solicitudes_de_credito.csv"
     file_output_path = "files/output/solicitudes_de_credito.csv"
 
     try:
-        
-        data = pd.read_csv(file_input_path, sep=None, engine='python')
+        # Cargar datos
+        data = pd.read_csv(file_input_path, sep=";", engine='python')
 
+        # Limpiar datos
         data_cleaned = clean_data(data)
-       
+
+        # Crear directorio de salida si no existe
         os.makedirs(os.path.dirname(file_output_path), exist_ok=True)
 
         # Guardar el archivo limpio
-        data_cleaned.to_csv(file_output_path, index=False)
+        data_cleaned.to_csv(file_output_path, index=False, sep=";")
 
         print("Archivo limpio guardado en:", file_output_path)
-    
+
     except pd.errors.ParserError as e:
         print("Error al procesar el archivo CSV. Verifica el delimitador o formato.")
         print("Detalle del error:", e)
-    
+
     except FileNotFoundError:
         print(f"Error: No se encontró el archivo en {file_input_path}")
-    
+
     except Exception as e:
         print(f"Se produjo un error: {e}")
 
